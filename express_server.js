@@ -7,15 +7,17 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+app.listen('view engine', 'ejs'); // to set EJS as the templating engine for the file.
+
 app.get("/", (req, res) => { // resgisters a handler on the root path
   res.send("Hello!");
 });
 
-app.get("/urls.json", (req, res) => { //adds additional end points to our example_app. This one sends a json object
+app.get("/urls.json", (req, res) => { //adds additional end points/routes to our example_app. This one sends a json object
   res.json(urlDatabase);
 });
 
-app.get('/hello', (req, res) => { //sends html code over through http. notice the <b> tag, the browser will pick up on this and bold the word world
+app.get('/hello', (req, res) => { //add an additional endpoint/route and sends html code over through http. notice the <b> tag, the browser will pick up on this and bold the word world
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
