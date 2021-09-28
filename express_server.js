@@ -3,7 +3,15 @@ const bodyParser = require("body-parser");
 const app = express();
 const PORT = 8080; // default port 8080
 const generateRandomString = function() {
-  undefined
+  let shortURL = "";
+  let count = 0; 
+  const encryptionSet = [0,1,2,3,4,5,6,7,8,9, "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
+  while (count < 6) {
+    let randIndex = Math.floor(Math.random() * (36 - 0) + 0);
+    shortURL += encryptionSet[randIndex];
+    count++;
+  }
+  return shortURL;
 };
 
 const urlDatabase = { //used to keep track of all the urls and their shortened forms. This is the data we ll want to show on the urls page.Keys look auto generated and the values are the long urls
@@ -29,14 +37,22 @@ app.get('/urls/new', (req, res) => { //creates a GET route to return/render the 
 });
 
 app.post('/urls', (req,res) => { //this will accept the post method/request from the url_new page and the form data it has to offer. This data (due the post method) will be sent in the body of the form/post request under the key longURL (name attribute in the input field). THe middleware makes the buffer lanugagre readable/into text and can take this data, acees the longUrl key and manipulate (add it to db, make a shortURL etc) to how we want using JS.
-  console.log(req.body);
-  res.send("Thank you!");
+  const shortURL = generateRandomString()
+  urlDatabase[shortURL] = req.body.longURL
+  // console.log(urlDatabase)
+  res.redirect(`/urls/${shortURL}`); //add a redirect here -> string interpolate the shroturl to the end of our url so its /urls/shortUrl > then below will pick up on this.
 }); 
 
 app.get('/urls/:shortURL', (req, res) => { //the :shortURL makes the value after : a route parameter. This makes the value of this routeParam after : can be accessesd by the request (req) object using request.params.routeParam
-  let shortURL = req.params.shortURL; //we can access the passed in url data after : as its stored in req.params. 
+  const shortURL = req.params.shortURL; //we can access the passed in url data after : as its stored in req.params. 
   const templateVars = { shortURL: shortURL, longURL: urlDatabase[shortURL] }; // we are pssing over the shortURL info from the passed in route param (:urldata) and then the longUrl using that same shortUrl to the urls_show template
   res.render('pages/urls_show', templateVars);
+});
+
+app.get('/u/:shortURL', (req, res) => { //new route to handle redirect links to longURL's
+  const shortURL = req.params.shortURL; 
+  const longURL = urlDatabase[shortURL];
+  res.redirect(longURL); //when tge browser receives a redirection repsonse it does another GET request to the url in the response (in this case the long URL and above to the other url pages we created)
 });
 
 app.listen(PORT, () => {
