@@ -49,12 +49,19 @@ app.get('/urls/:shortURL', (req, res) => { //the :shortURL makes the value after
   res.render('pages/urls_show', templateVars);
 });
 
-app.post('/urls/:shortURL/delete', (req, res) => {
+app.post('/urls/:shortURL/delete', (req, res) => { //route that listens and responds to request for the /delete page. This code picks up the request, deletes the passed throuhgh URL  and redirects the person to main page.
   const shortURL = req.params.shortURL;
   delete urlDatabase[shortURL];
   console.log(urlDatabase);
   res.redirect('/urls')
 });
+
+app.post('/urls/:shortURL/edit', (req, res) => { //route that waits for a request from the /edits page. This code picks up the request, takes in the shortURL realted to the request, picks up the req objects body info (which is created with the input elements name attrivute) whch is a new url and then changes the short url to the new longurl using object notation.
+  const shortURL = req.params.shortURL;
+  const updatedURL = req.body.updatedURL;
+  urlDatabase[shortURL] = updatedURL;
+  res.redirect('/urls');
+})
 
 app.get('/u/:shortURL', (req, res) => { //new route to handle redirect links to longURL's
   const shortURL = req.params.shortURL; 
