@@ -2,12 +2,12 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
 const PORT = 8080; // default port 8080
-const generateRandomString = function() {
+const generateRandomString = function() { //add a letter and number as the first two elements of the string. use same methodology as below
   let shortURL = "";
   let count = 0; 
-  const encryptionSet = [0,1,2,3,4,5,6,7,8,9, "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
+  const encryptionSet = [0,1,2,3,4,5,6,7,8,9, "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
   while (count < 6) {
-    let randIndex = Math.floor(Math.random() * (36 - 0) + 0);
+    let randIndex = Math.floor(Math.random() * (62 - 0) + 0);
     shortURL += encryptionSet[randIndex];
     count++;
   }
@@ -49,6 +49,13 @@ app.get('/urls/:shortURL', (req, res) => { //the :shortURL makes the value after
   res.render('pages/urls_show', templateVars);
 });
 
+app.post('/urls/:shortURL/delete', (req, res) => {
+  const shortURL = req.params.shortURL;
+  delete urlDatabase[shortURL];
+  console.log(urlDatabase);
+  res.redirect('/urls')
+});
+
 app.get('/u/:shortURL', (req, res) => { //new route to handle redirect links to longURL's
   const shortURL = req.params.shortURL; 
   const longURL = urlDatabase[shortURL];
@@ -56,7 +63,7 @@ app.get('/u/:shortURL', (req, res) => { //new route to handle redirect links to 
 });
 
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
+  console.log(`TinyApp listening on port ${PORT}!`);
 });
 
 //ORDER ROUTES FROM MOST TO LEAST SPECIFIC
