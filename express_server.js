@@ -50,7 +50,7 @@ app.get('/urls/:shortURL', (req, res) => { //the :shortURL makes the value after
 app.post('/urls/:shortURL/delete', (req, res) => { //route that listens and responds to request for the /delete page. This code picks up the request, deletes the passed throuhgh URL  and redirects the person to main page.
   const shortURL = req.params.shortURL;
   delete urlDatabase[shortURL];
-  console.log(urlDatabase);
+  // console.log(urlDatabase);
   res.redirect('/urls');
 });
 
@@ -64,6 +64,11 @@ app.post('/urls/:shortURL/edit', (req, res) => { //route that waits for a reques
 app.post('/login', (req,res) => {
   const cookieVal = req.body.username;
   res.cookie("username", cookieVal);
+  res.redirect('/urls');
+});
+
+app.post('/logout', (req,res) => {
+  res.clearCookie('username');
   res.redirect('/urls');
 });
 
