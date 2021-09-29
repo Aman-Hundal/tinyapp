@@ -21,32 +21,29 @@ const urlDatabase = { //used to keep track of all the urls and their shortened f
 
 app.set('view engine', 'ejs'); // to set EJS as the templating engine for the file.
 
-//app.use() // allows you to Parse Cookie header and populate req.cookies with an object keyed by the cookie names.
+app.use(cookieParser()) // allows you to Parse Cookie header and populate req.cookies with an object keyed by the cookie names.
 app.use(bodyParser.urlencoded({extended: true})); //middleware that will convert the request body from a buffer into a string/JS Object. it will then add the data to the req object under the key body. This will take the form data from the req.obj that i sent via post in the urls_new page and convert it into human language and not buffer language making it easy to find longURl to add to your DB.
 
-app.get("/", (req, res) => { // resgisters a handler on the root path
-  res.send("Hello!");
-});
-
 app.get('/urls', (req, res) => {
-  const templateVars = {urls: urlDatabase}; // When sending variables to an EJS template, we need to send them inside an object, even if we are only sending one variable. This is so we can use the key of that variable (in the above case the key is urls) to access the data within our template.
+  const templateVars = {urls: urlDatabase, username: req.cookies["username"] }; // When sending variables to an EJS template, we need to send them inside an object, even if we are only sending one variable. This is so we can use the key of that variable (in the above case the key is urls) to access the data within our template.
   res.render('pages/urls_index', templateVars); // this passes the urldatabase object data to our urls_index ESJ Temaplte. This will link the two data pieces
 });
 
 app.get('/urls/new', (req, res) => { //creates a GET route to return/render the form page to the client/browser/user. This has to be before the :id route because routes go linearlly up and down. If this was below the :id url, any calls to this urls/new page will be handle by :id because express will think that new is a route param.
-  res.render('pages/urls_new');
+  const templateVars = {username: req.cookies["username"] };
+  res.render('pages/urls_new', templateVars);
 });
 
 app.post('/urls', (req,res) => { //this will accept the post method/request from the url_new page and the form data it has to offer. This data (due the post method) will be sent in the body of the form/post request under the key longURL (name attribute in the input field). THe middleware makes the buffer lanugagre readable/into text and can take this data, acees the longUrl key and manipulate (add it to db, make a shortURL etc) to how we want using JS.
-  const shortURL = generateRandomString()
-  urlDatabase[shortURL] = req.body.longURL
+  const shortURL = generateRandomString();
+  urlDatabase[shortURL] = req.body.longURL;
   // console.log(urlDatabase)
   res.redirect(`/urls/${shortURL}`); //add a redirect here -> string interpolate the shroturl to the end of our url so its /urls/shortUrl > then below will pick up on this.
 }); 
 
 app.get('/urls/:shortURL', (req, res) => { //the :shortURL makes the value after : a route parameter. This makes the value of this routeParam after : can be accessesd by the request (req) object using request.params.routeParam
   const shortURL = req.params.shortURL; //we can access the passed in url data after : as its stored in req.params. 
-  const templateVars = { shortURL: shortURL, longURL: urlDatabase[shortURL] }; // we are pssing over the shortURL info from the passed in route param (:urldata) and then the longUrl using that same shortUrl to the urls_show template
+  const templateVars = { shortURL: shortURL, longURL: urlDatabase[shortURL], username: req.cookies["username"] }; // we are pssing over the shortURL info from the passed in route param (:urldata) and then the longUrl using that same shortUrl to the urls_show template
   res.render('pages/urls_show', templateVars);
 });
 
@@ -54,7 +51,7 @@ app.post('/urls/:shortURL/delete', (req, res) => { //route that listens and resp
   const shortURL = req.params.shortURL;
   delete urlDatabase[shortURL];
   console.log(urlDatabase);
-  res.redirect('/urls')
+  res.redirect('/urls');
 });
 
 app.post('/urls/:shortURL/edit', (req, res) => { //route that waits for a request from the /edits page. This code picks up the request, takes in the shortURL realted to the request, picks up the req objects body info (which is created with the input elements name attrivute) whch is a new url and then changes the short url to the new longurl using object notation.
@@ -64,11 +61,10 @@ app.post('/urls/:shortURL/edit', (req, res) => { //route that waits for a reques
   res.redirect('/urls');
 })
 
-app.post('/login', (res,req) => {
-  const cookieVal = req.body.username
-  res.cookie(username, cookieVal)
-  console.log(res.cookie)
-  res.redirect('/urls')
+app.post('/login', (req,res) => {
+  const cookieVal = req.body.username;
+  res.cookie("username", cookieVal);
+  res.redirect('/urls');
 });
 
 app.get('/u/:shortURL', (req, res) => { //new route to handle redirect links to longURL's
