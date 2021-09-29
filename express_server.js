@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080; // default port 8080
 const generateRandomString = function() { //add a letter and number as the first two elements of the string. use same methodology as below
@@ -13,7 +14,6 @@ const generateRandomString = function() { //add a letter and number as the first
   }
   return shortURL;
 };
-
 const urlDatabase = { //used to keep track of all the urls and their shortened forms. This is the data we ll want to show on the urls page.Keys look auto generated and the values are the long urls
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -21,6 +21,7 @@ const urlDatabase = { //used to keep track of all the urls and their shortened f
 
 app.set('view engine', 'ejs'); // to set EJS as the templating engine for the file.
 
+//app.use() // allows you to Parse Cookie header and populate req.cookies with an object keyed by the cookie names.
 app.use(bodyParser.urlencoded({extended: true})); //middleware that will convert the request body from a buffer into a string/JS Object. it will then add the data to the req object under the key body. This will take the form data from the req.obj that i sent via post in the urls_new page and convert it into human language and not buffer language making it easy to find longURl to add to your DB.
 
 app.get("/", (req, res) => { // resgisters a handler on the root path
@@ -62,6 +63,13 @@ app.post('/urls/:shortURL/edit', (req, res) => { //route that waits for a reques
   urlDatabase[shortURL] = updatedURL;
   res.redirect('/urls');
 })
+
+app.post('/login', (res,req) => {
+  const cookieVal = req.body.username
+  res.cookie(username, cookieVal)
+  console.log(res.cookie)
+  res.redirect('/urls')
+});
 
 app.get('/u/:shortURL', (req, res) => { //new route to handle redirect links to longURL's
   const shortURL = req.params.shortURL; 
