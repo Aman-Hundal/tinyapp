@@ -38,7 +38,8 @@ const findUserBy = function(property, reference) {  //allows you to find a user 
     }
   }
   return false;
-};
+}; // MAKING THIS CODE MODULAR and ONE THAT CAN ADDRESS MULTIPLE PROBLEMS WAS HUGE. WE CAN HUSE THIS FUNCION IN ALL OF OUR LOGIN. REIGSTRATION AND OTHER CHECKS
+//  When we take common functionality and extract it into a standalone function, we can use that functionality in several places (like our login and register routes) while only having to write it once.
 
 app.set('view engine', 'ejs'); // to set EJS as the templating engine for the file.
 
