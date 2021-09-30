@@ -3,14 +3,16 @@ const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080; // default port 8080
+const bcrypt = require('bcryptjs');
+const bcryptjs = require("bcryptjs");
 const urlDatabase = {//used to keep track of all the urls and their shortened forms. This is the data we ll want to show on the urls page.Keys look auto generated and the values are the long urls
   b6UTxQ: {
-      longURL: "https://www.tsn.ca",
-      userID: "A128"
+    longURL: "https://www.tsn.ca",
+    userID: "A128"
   },
   i3BoGr: {
-      longURL: "https://www.google.ca",
-      userID: "3209"
+    longURL: "https://www.google.ca",
+    userID: "3209"
   }
 };
 const userDatabase = {
@@ -28,7 +30,7 @@ const userDatabase = {
 
 const generateRandomString = function() { //add a letter and number as the first two elements of the string. use same methodology as below
   let shortURL = "";
-  let count = 0; 
+  let count = 0;
   const encryptionSet = [0,1,2,3,4,5,6,7,8,9, "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
   while (count < 6) {
     let randIndex = Math.floor(Math.random() * (62 - 0) + 0);
@@ -38,7 +40,7 @@ const generateRandomString = function() { //add a letter and number as the first
   return shortURL;
 };
 const findUserBy = function(property, reference) {  //allows you to find a user in your database (if they exist reutnr true) if not return false
-  for (key in userDatabase ) {
+  for (let key in userDatabase ) {
     if(userDatabase[key][property] === reference) {
       return userDatabase[key];
     }
@@ -127,9 +129,6 @@ app.post('/urls/:shortURL/delete', (req, res) => { //route that listens and resp
     return res.status(401).redirect("/login");
   }
 
-  console.log(cookieID)
-  console.log(urlDatabase[shortURL]["userID"])
-
   if (cookieID !== shortURLObj["userID"]) {
     return res.status(401).send("You do not have access to delete other users URLs.");
   }
@@ -162,20 +161,30 @@ app.post('/urls/:shortURL/edit', (req, res) => { //route that waits for a reques
 app.post('/login', (req,res) => {
   const email = req.body.email;
   const password = req.body.password;
-  if(!findUserBy("email",email)) {
+  const currentUser = findUserBy("email",email);
+  
+  if(!currentUser) {
     return res.status(403).send("Emaill cannot be found. Please try again.");
   }
 
-  const currentUser = findUserBy("email",email);
   // console.log("current_user:", currentUser);
 
-  if(currentUser["email"] === email && currentUser["password"] === password) {
-    res.cookie("UserId", currentUser["id"]);
-  } else {
-    return res.status(403).send("Password entered is incorrect. Please try again");
-  }
-
-  res.redirect('/urls');
+  if(currentUser["email"] === email) {
+    bcrypt.compare(password, currentUser["password"])
+    .then((result) => {
+      if(result) {
+        res.cookie("UserId", currentUser["id"]);
+        res.redirect('/urls');
+      } else {
+        return res.status(403).send("Password entered is incorrect. Please try again");
+      }
+    })
+  };
+  // if(currentUser["email"] === email && currentUser["password"] === password) {
+  //   res.cookie("UserId", currentUser["id"]);
+  // } else {
+  //   return res.status(403).send("Password entered is incorrect. Please try again");
+  // }
 });
 
 app.get('/login', (req, res) => {
@@ -207,15 +216,21 @@ app.post('/register', (req,res) => { //adding a POST route to access a newly reg
   if(findUserBy("email", email)) { 
     return res.status(400).send("This account already exists");
   };
-  
-  userDatabase[id] = {
-    id,
-    email,
-    password
-  };
 
+  bcrypt.genSalt(10) //HASH ENCRYPTIN STEPP generate salt promise object
+  .then(function(salt) { //pass in salt promise object to callback function in .then
+    return bcrypt.hash(password, salt); // return hash promise object (by taking in salt promise obj result (10) and plaintext password above). and pass it to next then
+  })
+  .then(function(resultHash) { // take the rhash promise object from above, and unwrap its result (a hashed passowrd) into a new user object + pass in all the userdata generate above to the new user pbject
+    userDatabase[id] = {
+      id, //using ES6 logic to shorten property value notation
+      email, //same as id
+      password: resultHash //applying the result hash value returned from the .then and promises to the password proeprty for a user.
+    };
+    console.log("current DB:", userDatabase);
+  });
+  
   res.cookie("UserId", id);
-  // console.log("current DB:", userDatabase);
   res.redirect('/urls');
 });
 
