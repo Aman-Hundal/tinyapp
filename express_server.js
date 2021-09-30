@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
 const app = express();
 const PORT = 8080; // default port 8080
 const bcrypt = require('bcryptjs');
@@ -60,11 +61,16 @@ const urlsForUser = function(userId) {
 
 app.set('view engine', 'ejs'); // to set EJS as the templating engine for the file.
 
-app.use(cookieParser()); // allows you to Parse Cookie header and populate req.cookies with an object keyed by the cookie names.
+app.use(cookieSession({
+  name: 'UserId',
+  keys: ["great save luongo"]
+}));
+
+// app.use(cookieParser()); // allows you to Parse Cookie header and populate req.cookies with an object keyed by the cookie names.
 app.use(bodyParser.urlencoded({extended: true})); //middleware that will convert the request body from a buffer into a string/JS Object. it will then add the data to the req object under the key body. This will take the form data from the req.obj that i sent via post in the urls_new page and convert it into human language and not buffer language making it easy to find longURl to add to your DB.
 
 app.get('/urls', (req, res) => {
-  const cookieID = req.cookies["UserId"];
+  const cookieID = req.session.UserId;
   const userURLS = urlsForUser(cookieID)
   
   if(!cookieID) {
@@ -76,7 +82,7 @@ app.get('/urls', (req, res) => {
 });
 
 app.get('/urls/new', (req, res) => { //creates a GET route to return/render the form page to the client/browser/user. This has to be before the :id route because routes go linearlly up and down. If this was below the :id url, any calls to this urls/new page will be handle by :id because express will think that new is a route param.
-  const cookieID = req.cookies["UserId"];
+  const cookieID = req.session.UserId;
   const templateVars = { userObj: userDatabase[cookieID] };
 
   if(!cookieID) {
@@ -87,7 +93,7 @@ app.get('/urls/new', (req, res) => { //creates a GET route to return/render the 
 });
 
 app.post('/urls', (req,res) => { //this will accept the post method/request from the url_new page and the form data it has to offer. This data (due the post method) will be sent in the body of the form/post request under the key longURL (name attribute in the input field). THe middleware makes the buffer lanugagre readable/into text and can take this data, acees the longUrl key and manipulate (add it to db, make a shortURL etc) to how we want using JS.
-  const cookieID = req.cookies["UserId"];
+  const cookieID = req.session.UserId;
 
   if(!cookieID) {
     return res.status(401).redirect("/login");
@@ -100,7 +106,7 @@ app.post('/urls', (req,res) => { //this will accept the post method/request from
 }); 
 
 app.get('/urls/:shortURL', (req, res) => { //the :shortURL makes the value after : a route parameter. This makes the value of this routeParam after : can be accessesd by the request (req) object using request.params.routeParam
-  const cookieID = req.cookies["UserId"];
+  const cookieID = req.session.UserId;
   const shortURL = req.params.shortURL; //we can access the passed in url data after : as its stored in req.params.
   const shortURLObj = urlDatabase[shortURL];
   
@@ -122,7 +128,7 @@ app.get('/urls/:shortURL', (req, res) => { //the :shortURL makes the value after
 
 app.post('/urls/:shortURL/delete', (req, res) => { //route that listens and responds to request for the /delete page. This code picks up the request, deletes the passed throuhgh URL  and redirects the person to main page.
   const shortURL = req.params.shortURL;
-  const cookieID = req.cookies["UserId"];
+  const cookieID = req.session.UserId;
   const shortURLObj = urlDatabase[shortURL];
 
   if(!cookieID) {
@@ -142,8 +148,7 @@ app.post('/urls/:shortURL/edit', (req, res) => { //route that waits for a reques
   const shortURL = req.params.shortURL;
   const updatedURL = req.body.updatedURL;
   const shortURLObj = urlDatabase[shortURL];
-
-  const cookieID = req.cookies["UserId"];
+  const cookieID = req.session.UserId;
 
   if(!cookieID) {
     return res.status(401).redirect("/login");
@@ -173,7 +178,7 @@ app.post('/login', (req,res) => {
     bcrypt.compare(password, currentUser["password"])
     .then((result) => {
       if(result) {
-        res.cookie("UserId", currentUser["id"]);
+        req.session.UserId = currentUser["id"];
         res.redirect('/urls');
       } else {
         return res.status(403).send("Password entered is incorrect. Please try again");
@@ -188,7 +193,7 @@ app.post('/login', (req,res) => {
 });
 
 app.get('/login', (req, res) => {
-  const cookieID = req.cookies["UserId"];
+  const cookieID = req.session.UserId;
   const templateVars = {userObj: userDatabase[cookieID] };
   res.render('pages/urls_login', templateVars);
 });
@@ -199,7 +204,7 @@ app.post('/logout', (req,res) => {
 });
 
 app.get('/register', (req,res) => {
-  const cookieID = req.cookies["UserId"]
+  const cookieID = req.session.UserId;
   const templateVars = {userObj: userDatabase[cookieID]};
   res.render('pages/urls_registration', templateVars);
 });
@@ -230,7 +235,7 @@ app.post('/register', (req,res) => { //adding a POST route to access a newly reg
     console.log("current DB:", userDatabase);
   });
   
-  res.cookie("UserId", id);
+  req.session.UserId = id;
   res.redirect('/urls');
 });
 
