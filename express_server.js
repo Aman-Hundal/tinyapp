@@ -1,3 +1,4 @@
+//imports
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieSession = require('cookie-session');
@@ -6,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const bcryptjs = require("bcryptjs");
 const { generateRandomString, findUserByEmail, urlsForUser} = require('./helper'); //helper functions used in app.
 
+//const global variables
 const PORT = 8080;
 const urlDatabase = {
   b6UTxQ: {
@@ -30,6 +32,7 @@ const userDatabase = {
   }
 };
 
+//middleware and EJS engine setup
 app.set('view engine', 'ejs');
 app.use(cookieSession({
   name: 'UserId',
@@ -38,6 +41,8 @@ app.use(cookieSession({
 app.use(bodyParser.urlencoded({extended: true}));
 
 //HTTP ROUTES
+
+// GET route to root page. Will redirect to urls page if use is logged in or login page if user is not logged in.
 app.get('/', (req, res) => {
   const cookieID = req.session.UserId;
   if (!cookieID) {
@@ -46,6 +51,7 @@ app.get('/', (req, res) => {
   res.redirect('/urls');
 });
 
+// GET route to main urls index page. Page shows users their owned shortened urls in a table format. Filter function (urlsForUser) is used to only display urls that are assigned/owned by the logged in user.
 app.get('/urls', (req, res) => {
   const cookieID = req.session.UserId;
   const userURLS = urlsForUser(cookieID, urlDatabase);
@@ -58,6 +64,7 @@ app.get('/urls', (req, res) => {
   res.render('pages/urls_index', templateVars);
 });
 
+//New url shorten page. Shows a user an interface to create a new shortened url.
 app.get('/urls/new', (req, res) => {
   const cookieID = req.session.UserId;
   const templateVars = { userObj: userDatabase[cookieID] };
@@ -69,6 +76,7 @@ app.get('/urls/new', (req, res) => {
   res.render('pages/urls_new', templateVars);
 });
 
+// POST route which takes a request from the urls/new (shorten url) page. Once the request is recieved, a random id is generated for the short Url and the short url, long url and user id of the creator is added as an object to the url database.
 app.post('/urls', (req,res) => {
   const cookieID = req.session.UserId;
   const longURL = req.body.longURL;
@@ -86,6 +94,7 @@ app.post('/urls', (req,res) => {
   res.redirect(`/urls/${shortURL}`);
 });
 
+//Displays a single/specific short url. Users are provided an interface where they can select the short url to be transferred to the coresponding long url page/website. Additionally users are provided an interface where they can edit their owned shorturls to another website.
 app.get('/urls/:shortURL', (req, res) => {
   const cookieID = req.session.UserId;
   const shortURL = req.params.shortURL;
@@ -107,6 +116,7 @@ app.get('/urls/:shortURL', (req, res) => {
   res.render('pages/urls_show', templateVars);
 });
 
+//POST route which takes a request from the main urls index page. If a user selects the delete button on the urls index page, this route takes the requests shortUrl, finds that shorturl object in the urldatabase and deletes the shorturl. Users whom do not own the short url cannot delete it nor can non-logged in users.
 app.post('/urls/:shortURL/delete', (req, res) => {
   const shortURL = req.params.shortURL;
   const cookieID = req.session.UserId;
@@ -124,6 +134,7 @@ app.post('/urls/:shortURL/delete', (req, res) => {
   res.redirect('/urls');
 });
 
+//POST route which takes an edit request from the single/specific urls page. The request finds the shortURL associated with the edit request in the urldatabase and changes only the longURL property of the shorturl object. Non logged in users and users whom do not own the shorturl cannot apply this request.
 app.post('/urls/:shortURL', (req, res) => {
   const shortURL = req.params.shortURL;
   const updatedURL = req.body.updatedURL;
@@ -146,6 +157,7 @@ app.post('/urls/:shortURL', (req, res) => {
   res.redirect('/urls');
 });
 
+//POST route which takes a request from the login page. The route checks to see if the user exists in the user database (done by running a findUserbyemail function) then checks to see if the password is correct (using bcrypts compared function) and logs them to the urls index page if info is correct. Any blank boxes or email/password errors will respond with correct error messages.
 app.post('/login', (req,res) => {
   const email = req.body.email;
   const password = req.body.password;
@@ -168,6 +180,7 @@ app.post('/login', (req,res) => {
   }
 });
 
+//Displays the login page to the user. The user is displayed an interface to provide their login credentials. If the user is already logged in, this page will redirect to the urls index page.
 app.get('/login', (req, res) => {
   const cookieID = req.session.UserId;
   const templateVars = {userObj: userDatabase[cookieID] };
@@ -179,11 +192,13 @@ app.get('/login', (req, res) => {
   res.render('pages/urls_login', templateVars);
 });
 
+//POST route that takes in a request when a user chooses to logout. When the user logsout their session cookie is deleted and they are sent to the urls index page.
 app.post('/logout', (req,res) => {
   res.clearCookie('UserId');
   res.redirect('/urls');
 });
 
+//Displays the registration page to the user. Users that are logged in are redirected to the urls index page.
 app.get('/register', (req,res) => {
   const cookieID = req.session.UserId;
   const templateVars = {userObj: userDatabase[cookieID]};
@@ -195,6 +210,7 @@ app.get('/register', (req,res) => {
   res.render('pages/urls_registration', templateVars);
 });
 
+//POST route which takes in a request from the register page/form. The route creates a random id using the generateRandomString function, and assigns an email and password (using bcrypts hashing function) to the userobject. The route checks to see if the user doesent already exist (if so they cannot register) and if this is true they are created as a user object under the userdatabase.
 app.post('/register', (req,res) => {
   const id = generateRandomString();
   const email = req.body.email;
@@ -223,7 +239,8 @@ app.post('/register', (req,res) => {
     });
 });
 
-app.get('/u/:shortURL', (req, res) => { //route to handle redirect links to longURL's
+//Route to handle redirect links to longURL's on the single urls page.
+app.get('/u/:shortURL', (req, res) => {
   const shortURL = req.params.shortURL;
 
   if (!urlDatabase[shortURL]) {
