@@ -6,6 +6,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 const bcrypt = require('bcryptjs');
 const bcryptjs = require("bcryptjs");
+const { generateRandomString, findUserByEmail, urlsForUser} = require('./helper');
 const urlDatabase = {//used to keep track of all the urls and their shortened forms. This is the data we ll want to show on the urls page.Keys look auto generated and the values are the long urls
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
@@ -28,50 +29,26 @@ const userDatabase = {
     password: "123"
   }
 };
-
-const generateRandomString = function() { //add a letter and number as the first two elements of the string. use same methodology as below
-  let shortURL = "";
-  let count = 0;
-  const encryptionSet = [0,1,2,3,4,5,6,7,8,9, "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
-  while (count < 6) {
-    let randIndex = Math.floor(Math.random() * (62 - 0) + 0);
-    shortURL += encryptionSet[randIndex];
-    count++;
-  }
-  return shortURL;
-};
-const findUserBy = function(property, reference) {  //allows you to find a user in your database (if they exist reutnr true) if not return false
-  for (let key in userDatabase ) {
-    if(userDatabase[key][property] === reference) {
-      return userDatabase[key];
-    }
-  }
-  return false;
-}; // MAKING THIS CODE MODULAR and ONE THAT CAN ADDRESS MULTIPLE PROBLEMS WAS HUGE. WE CAN HUSE THIS FUNCION IN ALL OF OUR LOGIN. REIGSTRATION AND OTHER CHECKS
-//  When we take common functionality and extract it into a standalone function, we can use that functionality in several places (like our login and register routes) while only having to write it once.
-const urlsForUser = function(userId) {
-  filteredObj = {};
-  for(keys in urlDatabase) {
-    if(userId === urlDatabase[keys]["userID"]) {
-      filteredObj[keys] = urlDatabase[keys];
-    }
-  }
-  return filteredObj;
-};
-
 app.set('view engine', 'ejs'); // to set EJS as the templating engine for the file.
 
 app.use(cookieSession({
   name: 'UserId',
   keys: ["great save luongo"]
 }));
-
 // app.use(cookieParser()); // allows you to Parse Cookie header and populate req.cookies with an object keyed by the cookie names.
 app.use(bodyParser.urlencoded({extended: true})); //middleware that will convert the request body from a buffer into a string/JS Object. it will then add the data to the req object under the key body. This will take the form data from the req.obj that i sent via post in the urls_new page and convert it into human language and not buffer language making it easy to find longURl to add to your DB.
 
+app.get('/', (req, res) => {
+  const cookieID = req.session.UserId;  
+  if(!cookieID) {
+    res.redirect('/login');
+  }
+  res.redirect('/urls');
+});
+
 app.get('/urls', (req, res) => {
   const cookieID = req.session.UserId;
-  const userURLS = urlsForUser(cookieID)
+  const userURLS = urlsForUser(cookieID, urlDatabase)
   
   if(!cookieID) {
     res.status(401);
@@ -94,9 +71,14 @@ app.get('/urls/new', (req, res) => { //creates a GET route to return/render the 
 
 app.post('/urls', (req,res) => { //this will accept the post method/request from the url_new page and the form data it has to offer. This data (due the post method) will be sent in the body of the form/post request under the key longURL (name attribute in the input field). THe middleware makes the buffer lanugagre readable/into text and can take this data, acees the longUrl key and manipulate (add it to db, make a shortURL etc) to how we want using JS.
   const cookieID = req.session.UserId;
+  const longURL = req.body.longURL;
 
   if(!cookieID) {
-    return res.status(401).redirect("/login");
+    return res.status(401).send("You are not a member. Please login or register to create a tiny URL.");
+  }
+
+  if(!longURL) {
+    return res.status(403).send("Please do not leave URL fields blank.");
   }
 
   const shortURL = generateRandomString();
@@ -132,11 +114,11 @@ app.post('/urls/:shortURL/delete', (req, res) => { //route that listens and resp
   const shortURLObj = urlDatabase[shortURL];
 
   if(!cookieID) {
-    return res.status(401).redirect("/login");
+    return res.status(401).send("You are not a member. Please log in or register in order to delete tiny URL's.")
   }
 
   if (cookieID !== shortURLObj["userID"]) {
-    return res.status(401).send("You do not have access to delete other users URLs.");
+    return res.status(401).send("You do not have access to delete other users URL's.");
   }
 
   delete urlDatabase[shortURL];
@@ -144,18 +126,22 @@ app.post('/urls/:shortURL/delete', (req, res) => { //route that listens and resp
   res.redirect('/urls');
 });
 
-app.post('/urls/:shortURL/edit', (req, res) => { //route that waits for a request from the /edits page. This code picks up the request, takes in the shortURL realted to the request, picks up the req objects body info (which is created with the input elements name attrivute) whch is a new url and then changes the short url to the new longurl using object notation.
+app.post('/urls/:shortURL', (req, res) => { //route that waits for a request from the /edits page. This code picks up the request, takes in the shortURL realted to the request, picks up the req objects body info (which is created with the input elements name attrivute) whch is a new url and then changes the short url to the new longurl using object notation.
   const shortURL = req.params.shortURL;
   const updatedURL = req.body.updatedURL;
   const shortURLObj = urlDatabase[shortURL];
   const cookieID = req.session.UserId;
 
+  if(!updatedURL) {
+    return res.status(403).send("Please do not leave URL fields blank.");
+  }
+
   if(!cookieID) {
-    return res.status(401).redirect("/login");
+    return res.status(401).send("You are not logged in. Please log in to make edits to tiny URLS.");
   }
 
   if (cookieID !== shortURLObj["userID"]) {
-    return res.status(401).send("You do not have access to delete other users URLs.");
+    return res.status(401).send("You do not have access to edit other users URLs.");
   }
 
   urlDatabase[shortURL]['longURL'] = updatedURL;
@@ -166,10 +152,10 @@ app.post('/urls/:shortURL/edit', (req, res) => { //route that waits for a reques
 app.post('/login', (req,res) => {
   const email = req.body.email;
   const password = req.body.password;
-  const currentUser = findUserBy("email",email);
+  const currentUser = findUserByEmail(email, userDatabase);
   
   if(!currentUser) {
-    return res.status(403).send("Emaill cannot be found. Please try again.");
+    return res.status(403).send("Email or password is incorrect. Please try again or register an account.");
   }
 
   // console.log("current_user:", currentUser);
@@ -181,7 +167,7 @@ app.post('/login', (req,res) => {
         req.session.UserId = currentUser["id"];
         res.redirect('/urls');
       } else {
-        return res.status(403).send("Password entered is incorrect. Please try again");
+        return res.status(403).send("Email or password is incorrect. Please try again or register an account.");
       }
     })
   };
@@ -195,6 +181,11 @@ app.post('/login', (req,res) => {
 app.get('/login', (req, res) => {
   const cookieID = req.session.UserId;
   const templateVars = {userObj: userDatabase[cookieID] };
+
+  if (cookieID) {
+    return res.redirect('/urls');
+  }
+
   res.render('pages/urls_login', templateVars);
 });
 
@@ -206,6 +197,11 @@ app.post('/logout', (req,res) => {
 app.get('/register', (req,res) => {
   const cookieID = req.session.UserId;
   const templateVars = {userObj: userDatabase[cookieID]};
+
+  if (cookieID) {
+    return res.redirect('/urls');
+  }
+
   res.render('pages/urls_registration', templateVars);
 });
 
@@ -215,11 +211,13 @@ app.post('/register', (req,res) => { //adding a POST route to access a newly reg
   const password = req.body.password;
 
   if(!email || !password) {
-    return res.status(400).send("Please do not leave fields blank");
+    return res.status(400).send("Please do not leave email or password fields blank.");
   }
 
-  if(findUserBy("email", email)) { 
-    return res.status(400).send("This account already exists");
+  console.log(userDatabase)
+  console.log(email)
+  if(findUserByEmail(email, userDatabase)) { 
+    return res.status(400).send("This account already exists. Please try again.");
   };
 
   bcrypt.genSalt(10) //HASH ENCRYPTIN STEPP generate salt promise object
@@ -233,17 +231,16 @@ app.post('/register', (req,res) => { //adding a POST route to access a newly reg
       password: resultHash //applying the result hash value returned from the .then and promises to the password proeprty for a user.
     };
     console.log("current DB:", userDatabase);
+    req.session.UserId = id;
+    res.redirect('/urls');
   });
-  
-  req.session.UserId = id;
-  res.redirect('/urls');
 });
 
 app.get('/u/:shortURL', (req, res) => { //new route to handle redirect links to longURL's
   const shortURL = req.params.shortURL;
 
   if (!urlDatabase[shortURL]) {
-    return res.status(404).send(`ERROR. Page does not exist.`);
+    return res.status(404).send(`ERROR. Webpage does not exist.`);
   }
   
   const longURL = urlDatabase[shortURL]["longURL"];
@@ -255,10 +252,10 @@ app.listen(PORT, () => {
   console.log(`TinyApp listening on port ${PORT}!`);
 });
 
-//ORDER ROUTES FROM MOST TO LEAST SPECIFIC
-
 // TO DO: 
-//review project evlauation and add in more feautres.
-//FINAL FUNCTION CHECK FOR BUGS
-//CSS
 //code clean up code/order routes
+//ORDER ROUTES FROM MOST TO LEAST SPECIFIC
+//get routes in alphabetical then post in alpha
+
+
+// cookies issue for not logign out but shutting down server

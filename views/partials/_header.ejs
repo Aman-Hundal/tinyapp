@@ -14,8 +14,16 @@
             <button  type='submit' class='btn btn-primary'>Logout</button>
           </form>
         <% } else { %>
-            <p><a href="/register">Register</a></p>
-            <p> | <a href="/login">Login</a></p>
+          <form  method="GET" action="/login">
+            <div class="d-flex justify-content-end">
+              <button  type='submit' class='btn btn-primary'>Login</button>
+            </div>
+          </form>
+          <form  method="GET" action="/register">
+            <div class="d-flex justify-content-end">
+            <button  type='submit' class='btn btn-primary'>Register</button>
+            </div>
+          </form>
         <% } %>
       </div>
     </div>

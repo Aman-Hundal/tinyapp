@@ -19,7 +19,7 @@
       </div>
       <div class="card-footer text-muted">
         <h3><b>Edit</b></h3>
-        <form class="card-title" method="POST" action="/urls/<%= shortURL %>/edit"> <!-- Creates a edit form that sends a POST METHOD  TO urls/id/edit (ACTION)-->
+        <form class="card-title" method="POST" action="/urls/<%= shortURL %>"> <!-- Creates a edit form that sends a POST METHOD  TO urls/id/edit (ACTION)-->
           <label>New URL:</label>
           <input class="card-title" type="text" name="updatedURL" placeholder="http://" style="width: 200px; margin: 0em">
           <button type='submit' class='btn btn-primary'>Submit</button>
@@ -27,7 +27,7 @@
       </div>
     </div>
     <% } else { %>
-      <h1><b>This URL does not belong to you.</b></h1> 
+      <h1><b>Access Denied. This URL does not belong to you.</b></h1> 
       <% } %>
     <% } else { %>
       <h1><b>Please register or login above to gain access to URL's.</b></h1>  
